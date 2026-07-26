@@ -56,6 +56,30 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
     )
   }
 
+  // Weekly runs of this audit, oldest first. This is the trend: same questions,
+  // asked again, so the numbers are actually comparable. Without email, this is
+  // also how you find the runs the cron made while you were not looking - so
+  // keep the parent's report link, it is the one worth bookmarking.
+  const { data: runData } = await admin
+    .from('audits')
+    .select('id, created_at, aggregate, status')
+    .or(`id.eq.${id},parent_audit_id.eq.${id}`)
+    .eq('status', 'complete')
+    .order('created_at', { ascending: true })
+
+  const history = ((runData ?? []) as Array<{
+    id: string
+    created_at: string
+    aggregate: AuditAggregate | null
+  }>)
+    .filter((r) => r.aggregate)
+    .map((r) => ({
+      id: r.id,
+      createdAt: r.created_at,
+      mentionRate: r.aggregate!.mentionRate,
+      shareOfVoice: r.aggregate!.shareOfVoice,
+    }))
+
   const { data: promptData } = await admin
     .from('audit_prompts')
     .select('id, idx, prompt, type, status, report, error, cost_usd')
@@ -80,6 +104,8 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
       createdAt={audit.created_at}
       aggregate={audit.aggregate}
       prompts={prompts}
+      history={history}
+      currentId={id}
     />
   )
 }

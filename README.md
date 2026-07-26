@@ -65,7 +65,7 @@ Prefer to do it by hand? The [full setup](#setup-from-nothing-to-deployed) is be
 - [Setup, from nothing to deployed](#setup-from-nothing-to-deployed) - including building it with Claude Code or Codex
 - [When it breaks](#when-it-breaks)
 - [The code, in reading order](#the-code-in-reading-order)
-- [Weekly runs and emailed reports](#weekly-runs-and-emailed-reports)
+- [Weekly runs](#weekly-runs)
 - [Making it yours](#making-it-yours)
 
 ---
@@ -456,37 +456,25 @@ it means. That is not cheating. That is the job now.
 | [`lib/tracker/aggregate.ts`](lib/tracker/aggregate.ts) | Every report rolled into one picture |
 | [`app/api/audits/[id]/run/route.ts`](app/api/audits/%5Bid%5D/run/route.ts) | The queue. Runs one prompt per request |
 | [`app/api/cron/weekly/route.ts`](app/api/cron/weekly/route.ts) | The weekly scheduled re-run |
-| [`lib/tracker/finalize.ts`](lib/tracker/finalize.ts) | Closing an audit, and the email that follows |
+| [`lib/tracker/finalize.ts`](lib/tracker/finalize.ts) | Closing an audit and building the rollup |
 | [`components/TrackerFlow.tsx`](components/TrackerFlow.tsx) | The three-step front end |
 | [`components/ReportView.tsx`](components/ReportView.tsx) | The report. No client JavaScript |
 
 ---
 
-## Weekly runs and emailed reports
+## Weekly runs
 
-One run is a snapshot. The value is in the trend, so both of these ship built in and both are
-optional.
+One run is a snapshot. The value is in the trend.
 
-On the review screen, before you run, you can enter an email address and tick **run this same
-prompt set every week**. Repeating the *exact same questions* is the point - change the questions
-and you are no longer measuring movement, you are measuring two different things.
+On the review screen, before you run, tick **run this same prompt set every week**. Repeating the
+*exact same questions* is the point - change the questions and you are no longer measuring
+movement, you are measuring two different things.
 
-### Emailing the report
+Every weekly run is linked to the original, and the report page grows a **Movement over time**
+section showing each run's mention rate and the change since the last one. Keep the first report
+link: it is the one that accumulates the history.
 
-1. Get a free API key at [resend.com](https://resend.com)
-2. Add `RESEND_API_KEY` to `.env.local` (and to Vercel for the live site)
-
-That is it. Finish a run with an email filled in and you get the headline numbers, mention rate by
-prompt type, who else the models named, and a link to the full report.
-
-> Resend's shared sender only delivers to the address that owns the Resend account. That is usually
-> fine, because you are mailing yourself. To send anywhere else, verify a domain in Resend and set
-> `EMAIL_FROM` to an address on it.
-
-**Without a Resend key, email is skipped silently and everything else works exactly the same.** No
-fourth account required.
-
-### The weekly schedule
+### The schedule
 
 [`vercel.json`](vercel.json) already contains the schedule:
 
@@ -501,7 +489,7 @@ Add a `CRON_SECRET` env var in Vercel (any random string). Vercel sends it autom
 triggers the job, and the route rejects anyone who cannot present it.
 
 Each week the job finds every recurring audit that has not run in six days, clones its prompt set
-into a fresh run, and works through it. Finished runs email out if an address was set.
+into a fresh run, and works through it. The results appear on the original report link.
 
 > **Cost is the thing to keep an eye on.** A weekly 15-prompt run is about 35 cents a week, so
 > roughly $18 a year per brand you track. Fewer prompts or fewer engines brings it down.
@@ -524,7 +512,7 @@ It reports what it scheduled and how much it got through.
 
 - Feed the cited sources into a content plan, because those pages are what shape the answers
 - Add a step that reads the answers you lost and writes back what the winners had that you did not
-- Chart mention rate over time by reading the linked weekly runs (`parent_audit_id`)
+- Email or Slack the report when a weekly run finishes
 - Track several brands in one account
 
 The tracker is not the point. Knowing what to fix is.

@@ -72,18 +72,16 @@ create index if not exists audit_prompts_audit_idx on public.audit_prompts (audi
 create index if not exists audit_prompts_status_idx on public.audit_prompts (audit_id, status);
 
 -- ---------------------------------------------------------------------------
--- WEEKLY RUNS + EMAIL
+-- WEEKLY RUNS
 --
 -- An audit can be marked recurring. Once a week the cron clones its prompt set
 -- into a fresh audit and runs it, so you get the same questions asked again and
 -- can watch the numbers move. The clone points back at its parent so a run and
 -- its history stay connected.
 --
--- Both columns are optional. Leave them alone and the app behaves exactly as it
--- did before.
+-- All optional. Leave these alone and the app behaves exactly as it did before.
 -- ---------------------------------------------------------------------------
 alter table public.audits add column if not exists recurring boolean not null default false;
-alter table public.audits add column if not exists notify_email text;
 alter table public.audits add column if not exists parent_audit_id uuid references public.audits (id) on delete set null;
 alter table public.audits add column if not exists last_run_at timestamptz;
 

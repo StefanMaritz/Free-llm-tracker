@@ -1,6 +1,5 @@
 /**
- * Finishing an audit: build the rollup, mark it complete, and email the report
- * if someone asked for it.
+ * Finishing an audit: build the rollup and mark it complete.
  *
  * Shared by the browser-driven run loop and the weekly cron, so a scheduled run
  * and a manual run produce exactly the same result. If these ever diverge, your
@@ -9,8 +8,6 @@
 import { createAdminClient } from '@/lib/supabase'
 import { normalizeWebsite } from './analyze'
 import { aggregateAudit } from './aggregate'
-import { sendReportEmail } from '@/lib/email'
-import { getAppUrl } from '@/lib/env'
 import type { AuditPromptResult, PromptType, Report } from './types'
 
 type Admin = ReturnType<typeof createAdminClient>
@@ -19,7 +16,6 @@ export interface FinalizableAudit {
   id: string
   brand: string
   website: string | null
-  notify_email?: string | null
 }
 
 interface PromptRow {
@@ -38,7 +34,7 @@ interface PromptRow {
  *
  * The status flip to 'finalizing' is the lock: only the caller that wins it
  * proceeds. Without it, two workers finishing the last two prompts at the same
- * moment would both aggregate and both send an email.
+ * moment would both aggregate and both write a result.
  *
  * Returns true if this caller did the finalising.
  */
@@ -80,20 +76,6 @@ export async function finalizeAudit(admin: Admin, audit: FinalizableAudit): Prom
       completed_at: new Date().toISOString(),
     })
     .eq('id', audit.id)
-
-  // Email last, and never let a mail failure undo a finished audit. The report
-  // is already saved and the link already works.
-  if (audit.notify_email) {
-    try {
-      await sendReportEmail(audit.notify_email, {
-        brand: audit.brand,
-        aggregate,
-        reportUrl: `${getAppUrl().replace(/\/$/, '')}/a/${audit.id}`,
-      })
-    } catch (err) {
-      console.error('[finalize] report email failed:', err instanceof Error ? err.message : err)
-    }
-  }
 
   return true
 }

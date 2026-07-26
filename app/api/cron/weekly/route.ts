@@ -39,7 +39,6 @@ interface AuditRow {
   brand: string
   website: string | null
   competitors: string[] | null
-  notify_email: string | null
 }
 
 /** Clone every recurring audit that is due into a fresh, queued audit. */
@@ -48,7 +47,7 @@ async function scheduleDueRuns(admin: Admin): Promise<number> {
 
   const { data } = await admin
     .from('audits')
-    .select('id, brand, website, competitors, notify_email, last_run_at, created_at')
+    .select('id, brand, website, competitors, last_run_at, created_at')
     .eq('recurring', true)
     .or(`last_run_at.is.null,last_run_at.lt.${cutoff}`)
 
@@ -85,7 +84,6 @@ async function scheduleDueRuns(admin: Admin): Promise<number> {
         competitors: parent.competitors ?? [],
         status: 'running',
         total_prompts: rows.length,
-        notify_email: parent.notify_email,
         parent_audit_id: parent.id,
         recurring: false, // only the parent carries the schedule
       })
@@ -139,7 +137,7 @@ async function drain(admin: Admin, startedAt: number): Promise<{ ran: number; re
 
     const { data: auditData } = await admin
       .from('audits')
-      .select('id, brand, website, competitors, notify_email')
+      .select('id, brand, website, competitors')
       .eq('id', row.audit_id)
       .maybeSingle()
     const audit = auditData as AuditRow | null
@@ -164,8 +162,8 @@ async function drain(admin: Admin, startedAt: number): Promise<{ ran: number; re
     }
     ran++
 
-    // Finish the audit as soon as its last prompt lands, so the email goes out
-    // promptly rather than waiting for the whole queue to empty.
+    // Finish the audit as soon as its last prompt lands, rather than waiting
+    // for the whole queue to empty.
     const { count: left } = await admin
       .from('audit_prompts')
       .select('id', { count: 'exact', head: true })

@@ -35,7 +35,6 @@ interface AuditRow {
   website: string | null
   competitors: string[] | null
   status: string
-  notify_email: string | null
 }
 
 async function progressOf(admin: Admin, auditId: string) {
@@ -62,7 +61,7 @@ export async function POST(
 
     const { data } = await admin
       .from('audits')
-      .select('id, brand, website, competitors, status, notify_email')
+      .select('id, brand, website, competitors, status')
       .eq('id', id)
       .maybeSingle()
 

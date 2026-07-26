@@ -43,18 +43,29 @@ function Bar({ value }: { value: number }) {
   )
 }
 
+export interface HistoryPoint {
+  id: string
+  createdAt: string
+  mentionRate: number
+  shareOfVoice: number
+}
+
 export default function ReportView({
   brand,
   website,
   createdAt,
   aggregate,
   prompts,
+  history = [],
+  currentId,
 }: {
   brand: string
   website: string | null
   createdAt: string
   aggregate: AuditAggregate
   prompts: AuditPromptResult[]
+  history?: HistoryPoint[]
+  currentId?: string
 }) {
   const totalAnswers = aggregate.perEngine.reduce((s, e) => s + e.answered, 0)
 
@@ -98,6 +109,52 @@ export default function ReportView({
           hint="Where you rank against other brands when you do appear."
         />
       </div>
+
+      {/* --- the trend, once there is more than one run to compare --- */}
+      {history.length > 1 && (
+        <section className="mb-14">
+          <h2 className="mb-1 text-xl font-semibold tracking-tight">Movement over time</h2>
+          <p className="mb-6 text-sm text-muted">
+            The same prompts, asked again each week. One run tells you where you stand; this is the
+            only part that tells you whether anything you did worked.
+          </p>
+          <div className="divide-y divide-line border-y border-line">
+            {history.map((h, i) => {
+              const prev = i > 0 ? history[i - 1] : null
+              const delta = prev ? h.mentionRate - prev.mentionRate : null
+              const isCurrent = h.id === currentId
+              return (
+                <div key={h.id} className="flex items-center gap-4 py-3 text-sm">
+                  <span className="w-28 shrink-0 tabular-nums">
+                    {new Date(h.createdAt).toLocaleDateString('en-GB', {
+                      day: 'numeric',
+                      month: 'short',
+                    })}
+                  </span>
+                  <span className="flex-1">
+                    <Bar value={h.mentionRate} />
+                  </span>
+                  <span className="w-14 shrink-0 text-right tabular-nums">{pct(h.mentionRate)}</span>
+                  <span className="w-16 shrink-0 text-right tabular-nums text-muted">
+                    {delta === null
+                      ? '-'
+                      : `${delta > 0 ? '+' : ''}${Math.round(delta * 100)}pt`}
+                  </span>
+                  <span className="w-16 shrink-0 text-right">
+                    {isCurrent ? (
+                      <span className="label">this one</span>
+                    ) : (
+                      <a href={`/a/${h.id}`} className="label underline">
+                        open
+                      </a>
+                    )}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {/* --- by prompt type: the most useful table in the report --- */}
       <section className="mb-14">

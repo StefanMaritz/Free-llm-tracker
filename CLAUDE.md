@@ -109,25 +109,11 @@ working afterwards.
 Once they have seen a report, offer, and let them pick ONE:
 
 - **deploy it live on Vercel** so it has a real URL, and turn on the weekly schedule
-- **turn on emailed reports** - needs a free Resend key, see below
 - add a CSV export to the report
 - add a history page listing every past run
 - change what the prompts ask about
 
 Then stop and wait. Do not start building things they did not ask for.
-
-### Optional - emailed reports
-
-Only if they ask. Both features already exist; there is nothing to build.
-
-1. They get a free API key at resend.com
-2. Add `RESEND_API_KEY` to `.env.local`, and to Vercel if they have deployed
-
-Warn them about the one thing that confuses people: Resend's shared sender only delivers to the
-address that owns the Resend account. Mailing themselves works immediately; mailing anyone else
-needs a verified domain in Resend and `EMAIL_FROM` set to an address on it.
-
-With no key set, email is skipped silently and nothing else changes.
 
 ### Optional - the weekly schedule
 
@@ -140,7 +126,9 @@ deployed to Vercel - it does nothing locally.
 3. Redeploy
 
 Then tell them to tick "run this same prompt set every week" on the review screen before starting a
-run. Point out the cost: a weekly 15-prompt run is roughly $18 a year per brand.
+run. Point out two things: the cost is roughly $18 a year per brand at 15 prompts, and the weekly
+results show up on the ORIGINAL report link under "Movement over time" - so that link is the one
+worth bookmarking.
 
 To prove it works without waiting for Monday, run `curl http://localhost:3000/api/cron/weekly` and
 read the JSON it returns.
