@@ -104,26 +104,40 @@ Walk them through their first run: enter a website they know well, review the ge
 click Run. Tell them it takes a few minutes and costs a few cents, and that the report link keeps
 working afterwards.
 
-### Step 8 - offer what is next
+### Step 8 - get it onto a real URL
 
-Once they have seen a report, offer, and let them pick ONE:
+Do this before they get attached to a localhost link. `localhost:3000` only exists while their
+terminal is running, and the weekly schedule does not run at all until the app is deployed.
 
-- **deploy it live on Vercel** so it has a real URL, and turn on the weekly schedule
+1. If they used the zip rather than a fork, get the folder onto GitHub first
+2. Import the repo at vercel.com/new
+3. **Before clicking Deploy**, add the same three environment variables from `.env.local`, set to
+   Production. Without them the site loads and every run fails
+4. Deploy
+
+Then explain the useful part: local and live share one Supabase database, so the report they just
+made on their laptop is already sitting at the same `/a/<id>` path on their new Vercel URL. **That
+is the link worth bookmarking**, and the one that accumulates weekly runs.
+
+If they want the weekly schedule, add a `CRON_SECRET` env var (any random string) and redeploy.
+`vercel.json` already carries the schedule.
+
+### Step 9 - offer what is next
+
+Offer, and let them pick ONE:
+
 - add a CSV export to the report
 - add a history page listing every past run
 - change what the prompts ask about
+- put it on a custom domain
 
 Then stop and wait. Do not start building things they did not ask for.
 
 ### Optional - the weekly schedule
 
-The schedule already lives in `vercel.json` (Mondays, 08:00 UTC). It only runs once the project is
-deployed to Vercel - it does nothing locally.
+The schedule already lives in `vercel.json` (Mondays, 08:00 UTC). It does nothing locally.
 
-1. Deploy to Vercel
-2. Add a `CRON_SECRET` env var, any random string. Vercel presents it automatically when it
-   triggers the job
-3. Redeploy
+It only runs once the project is deployed (step 8) and a `CRON_SECRET` env var is set.
 
 Then tell them to tick "run this same prompt set every week" on the review screen before starting a
 run. Point out two things: the cost is roughly $18 a year per brand at 15 prompts, and the weekly

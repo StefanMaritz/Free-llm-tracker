@@ -471,8 +471,14 @@ On the review screen, before you run, tick **run this same prompt set every week
 movement, you are measuring two different things.
 
 Every weekly run is linked to the original, and the report page grows a **Movement over time**
-section showing each run's mention rate and the change since the last one. Keep the first report
-link: it is the one that accumulates the history.
+section showing each run's mention rate and the change since the last one.
+
+**The schedule only runs once the app is deployed to Vercel** - a cron needs a server, so nothing
+fires while the app is only on your laptop. Deploy first, then keep your report link from the live
+URL: that is the one that accumulates the history.
+
+> Local and live share one Supabase database, so a report you created locally is already sitting at
+> the same `/a/<id>` path on your Vercel URL the moment you deploy. Nothing to migrate.
 
 ### The schedule
 

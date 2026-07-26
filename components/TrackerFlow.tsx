@@ -342,6 +342,13 @@ export default function TrackerFlow() {
   // step === 'running'
   const pct = progress.total ? Math.round((progress.done / progress.total) * 100) : 0
 
+  // Show the full link rather than the path, so it is obviously bookmarkable.
+  // On a deployed app this is your Vercel URL; locally it is localhost. Both
+  // read the same database, so a run started on your laptop opens on the live
+  // site at the same address once you deploy.
+  const reportUrl =
+    typeof window === 'undefined' ? `/a/${auditId}` : `${window.location.origin}/a/${auditId}`
+
   return (
     <div className="max-w-2xl">
       <h2 className="mb-3 text-2xl font-semibold tracking-tight">Running</h2>
@@ -358,13 +365,15 @@ export default function TrackerFlow() {
       </p>
 
       {auditId && (
-        <p className="mt-8 text-sm text-muted">
-          Your report link is{' '}
-          <a className="underline" href={`/a/${auditId}`}>
-            /a/{auditId}
+        <div className="mt-8 text-sm text-muted">
+          <p className="mb-2">
+            Bookmark your report link. It keeps working after this finishes, and if you turned on
+            weekly runs, every future run appears on this same page as a trend.
+          </p>
+          <a className="break-all font-mono text-xs underline" href={`/a/${auditId}`}>
+            {reportUrl}
           </a>
-          . It keeps working after this finishes.
-        </p>
+        </div>
       )}
 
       {error && <p className="mt-6 border border-ink px-4 py-3 text-sm">{error}</p>}
