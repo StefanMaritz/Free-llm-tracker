@@ -1,0 +1,990 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="Build your own LLM brand visibility tracker. Workshop guide for The Workflow." />
+<title>Build your own LLM tracker</title>
+<style>
+  :root {
+    --paper: #ffffff;
+    --tint: #f2f3f5;
+    --line: #d6d9de;
+    --line-soft: #e7e9ec;
+    --mid: #767b84;
+    --strong: #3d4149;
+    --ink: #0b0c0e;
+    --invert-bg: #0b0c0e;
+    --invert-fg: #f5f6f7;
+
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #0b0c0e;
+      --tint: #16181c;
+      --line: #2c2f35;
+      --line-soft: #1e2126;
+      --mid: #8b9098;
+      --strong: #c3c7cd;
+      --ink: #f5f6f7;
+      --invert-bg: #f5f6f7;
+      --invert-fg: #0b0c0e;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #0b0c0e;
+    --tint: #16181c;
+    --line: #2c2f35;
+    --line-soft: #1e2126;
+    --mid: #8b9098;
+    --strong: #c3c7cd;
+    --ink: #f5f6f7;
+    --invert-bg: #f5f6f7;
+    --invert-fg: #0b0c0e;
+  }
+
+  :root[data-theme="light"] {
+    --paper: #ffffff;
+    --tint: #f2f3f5;
+    --line: #d6d9de;
+    --line-soft: #e7e9ec;
+    --mid: #767b84;
+    --strong: #3d4149;
+    --ink: #0b0c0e;
+    --invert-bg: #0b0c0e;
+    --invert-fg: #f5f6f7;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection { background: var(--ink); color: var(--paper); }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 32px 120px;
+  }
+
+  .col { max-width: 68ch; }
+
+  /* ---------- type ---------- */
+
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+
+  h1 {
+    font-size: clamp(2.75rem, 7vw, 5.25rem);
+    font-weight: 800;
+    letter-spacing: -0.045em;
+    line-height: 0.95;
+  }
+
+  h2 {
+    font-size: clamp(1.65rem, 3.2vw, 2.35rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+
+  h3 {
+    font-size: 1.0625rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  p { margin: 0 0 1.15em; }
+  p:last-child { margin-bottom: 0; }
+
+  a { color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line); }
+  a:hover { text-decoration-color: currentColor; }
+  a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+  strong { font-weight: 650; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--mid);
+  }
+
+  .lead {
+    font-size: clamp(1.125rem, 1.9vw, 1.35rem);
+    line-height: 1.5;
+    color: var(--strong);
+    letter-spacing: -0.011em;
+  }
+
+  .note { font-size: 0.9375rem; color: var(--mid); }
+
+  /* ---------- structure ---------- */
+
+  header.masthead {
+    border-bottom: 1px solid var(--ink);
+    padding: 28px 0 72px;
+    margin-bottom: 0;
+  }
+
+  .masthead-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 96px;
+  }
+
+  section {
+    padding: 76px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .sec-head {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+
+  @media (min-width: 860px) {
+    .sec-head {
+      grid-template-columns: 148px 1fr;
+      gap: 40px;
+    }
+  }
+
+  /* ---------- the fan-out diagram ---------- */
+
+  .fan {
+    display: grid;
+    gap: 0;
+    border: 1px solid var(--ink);
+    margin: 8px 0 32px;
+  }
+
+  .fan-in {
+    padding: 22px 24px;
+    border-bottom: 1px solid var(--ink);
+    font-family: var(--mono);
+    font-size: 0.9375rem;
+  }
+
+  .fan-in span { color: var(--mid); }
+
+  .fan-out {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 720px) {
+    .fan-out { grid-template-columns: repeat(5, 1fr); }
+  }
+
+  .engine {
+    padding: 20px 16px 22px;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .fan-out .engine:last-child { border-right: none; }
+
+  @media (min-width: 720px) {
+    .engine { border-bottom: none; }
+  }
+
+  .engine-name {
+    font-weight: 700;
+    font-size: 0.9375rem;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .engine-model {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    color: var(--mid);
+    word-break: break-all;
+    line-height: 1.45;
+  }
+
+  .fan-foot {
+    padding: 20px 24px;
+    border-top: 1px solid var(--ink);
+    background: var(--tint);
+    font-size: 0.9375rem;
+    color: var(--strong);
+  }
+
+  /* ---------- prompt types ---------- */
+
+  .types {
+    display: grid;
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+
+  @media (min-width: 900px) {
+    .types { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  .type {
+    background: var(--paper);
+    padding: 32px 28px 34px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .type-num {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.16em;
+    color: var(--mid);
+    text-transform: uppercase;
+  }
+
+  .type h3 {
+    font-size: 1.5rem;
+    font-weight: 750;
+    letter-spacing: -0.025em;
+  }
+
+  .specimen {
+    font-family: var(--mono);
+    font-size: 0.875rem;
+    line-height: 1.55;
+    padding: 16px 18px;
+    border-left: 2px solid var(--ink);
+    background: var(--tint);
+    color: var(--strong);
+  }
+
+  .type p { font-size: 0.9375rem; line-height: 1.6; margin: 0; }
+
+  .type-answers {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid var(--line-soft);
+    font-size: 0.875rem;
+    color: var(--mid);
+  }
+
+  .type-answers b { color: var(--ink); font-weight: 650; display: block; margin-bottom: 2px; }
+
+  /* ---------- steps ---------- */
+
+  .steps { border-top: 1px solid var(--ink); }
+
+  .step {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 32px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  @media (min-width: 860px) {
+    .step {
+      grid-template-columns: 148px 1fr;
+      gap: 40px;
+    }
+  }
+
+  .step-n {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    color: var(--mid);
+    text-transform: uppercase;
+    padding-top: 4px;
+  }
+
+  .step h3 { margin-bottom: 8px; font-size: 1.1875rem; letter-spacing: -0.02em; }
+  .step p { font-size: 0.9688rem; }
+  .step ul { margin: 0 0 1em; padding-left: 1.15em; font-size: 0.9688rem; }
+  .step li { margin-bottom: 6px; }
+  .step li::marker { color: var(--mid); }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.875em;
+    background: var(--tint);
+    padding: 2px 6px;
+    border: 1px solid var(--line-soft);
+    white-space: nowrap;
+  }
+
+  pre {
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    line-height: 1.7;
+    background: var(--tint);
+    border: 1px solid var(--line);
+    padding: 18px 20px;
+    overflow-x: auto;
+    margin: 0 0 1.15em;
+  }
+
+  pre code { background: none; border: none; padding: 0; font-size: inherit; white-space: pre; }
+
+  .callout {
+    border-left: 2px solid var(--ink);
+    padding: 4px 0 4px 20px;
+    margin: 0 0 1.15em;
+    font-size: 0.9375rem;
+    color: var(--strong);
+  }
+
+  /* ---------- tables ---------- */
+
+  .table-scroll { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+    min-width: 540px;
+  }
+
+  th {
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mid);
+    font-weight: 400;
+    padding: 0 20px 12px 0;
+    border-bottom: 1px solid var(--ink);
+  }
+
+  td {
+    padding: 14px 20px 14px 0;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+  }
+
+  td:first-child { font-weight: 620; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* ---------- misc ---------- */
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-bottom: 40px;
+  }
+
+  @media (min-width: 720px) {
+    .stat-row { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  .stat { background: var(--paper); padding: 22px 20px; }
+
+  .stat-v {
+    font-size: 1.875rem;
+    font-weight: 750;
+    letter-spacing: -0.035em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    margin-bottom: 3px;
+  }
+
+  .stat-l { font-family: var(--mono); font-size: 0.6875rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mid); }
+
+  .pill {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: 1px solid var(--line);
+    padding: 4px 10px;
+    color: var(--strong);
+  }
+
+  .invert {
+    background: var(--invert-bg);
+    color: var(--invert-fg);
+    padding: 44px 40px;
+  }
+
+  .invert .eyebrow { color: inherit; opacity: 0.6; }
+  .invert a { text-decoration-color: currentColor; opacity: 0.95; }
+  .invert p:last-child { margin-bottom: 0; }
+
+  footer {
+    padding: 56px 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    justify-content: space-between;
+  }
+
+  .stack-list { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); }
+
+  @media (min-width: 760px) { .stack-list { grid-template-columns: repeat(2, 1fr); } }
+
+  .stack-item { background: var(--paper); padding: 24px 26px; }
+  .stack-item h3 { margin-bottom: 6px; }
+  .stack-item p { font-size: 0.9375rem; color: var(--strong); margin: 0; }
+  .stack-item .eyebrow { display: block; margin-bottom: 10px; }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="masthead-bar">
+      <span class="eyebrow">The Workflow &middot; Live build session</span>
+      <span class="eyebrow">Next.js &middot; Supabase &middot; Vercel</span>
+    </div>
+    <h1>Build your own<br />LLM tracker</h1>
+    <div class="col" style="margin-top: 36px;">
+      <p class="lead">
+        Your buyers are asking ChatGPT which tool to use. You have no idea what it tells them.
+        Tonight we build the thing that finds out, and you leave with it running on your own domain.
+      </p>
+    </div>
+  </header>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">What you leave with</span>
+      <div class="col">
+        <h2>A working tracker, not a demo</h2>
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat">
+        <div class="stat-v tnum">5</div>
+        <div class="stat-l">AI models queried</div>
+      </div>
+      <div class="stat">
+        <div class="stat-v tnum">3</div>
+        <div class="stat-l">Prompt types</div>
+      </div>
+      <div class="stat">
+        <div class="stat-v tnum">$0.025</div>
+        <div class="stat-l">Cost per prompt</div>
+      </div>
+      <div class="stat">
+        <div class="stat-v tnum">~40<span style="font-size:1.125rem;font-weight:600;"> min</span></div>
+        <div class="stat-l">Zero to deployed</div>
+      </div>
+    </div>
+
+    <div class="col">
+      <p>
+        Point it at a website. It reads the site, works out what the company sells and who it
+        competes with, writes the questions a real buyer would ask an AI, fires every question at
+        five models, reads every answer, and reports where you show up and who shows up instead.
+      </p>
+      <p>
+        Every answer is saved in full, so you can read exactly what each model said about you. The
+        report is a link you can send to anyone.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">How it works</span>
+      <div class="col">
+        <h2>There is no shortcut. You have to run the prompts.</h2>
+      </div>
+    </div>
+
+    <div class="col">
+      <p>
+        This is the part most people get wrong, so it is worth being blunt about it.
+      </p>
+      <p>
+        <strong>There is no API that tells you whether ChatGPT recommends your brand.</strong>
+        OpenAI does not publish it. Neither does Anthropic, Google, Perplexity, or xAI. There is no
+        Search Console for AI answers, no index you can query, no rank tracker quietly reading the
+        models' minds.
+      </p>
+      <p>
+        The only honest way to find out what an AI says about you is to <strong>ask it, and read
+        the answer</strong>. Then ask it again, hundreds of times, across different questions and
+        different models, and count what comes back.
+      </p>
+      <p>
+        That is the entire product. Everything else in this repo is plumbing around that one idea.
+      </p>
+    </div>
+
+    <div class="fan">
+      <div class="fan-in">
+        <span>prompt &rarr;</span> "What are the best tools for creating a team wiki?"
+      </div>
+      <div class="fan-out">
+        <div class="engine">
+          <span class="engine-name">ChatGPT</span>
+          <span class="engine-model">openai/gpt-5.3-chat</span>
+        </div>
+        <div class="engine">
+          <span class="engine-name">Claude</span>
+          <span class="engine-model">anthropic/claude-sonnet-4.6</span>
+        </div>
+        <div class="engine">
+          <span class="engine-name">Gemini</span>
+          <span class="engine-model">google/gemini-3-flash</span>
+        </div>
+        <div class="engine">
+          <span class="engine-name">Perplexity</span>
+          <span class="engine-model">perplexity/sonar</span>
+        </div>
+        <div class="engine">
+          <span class="engine-name">Grok</span>
+          <span class="engine-model">xai/grok-4.1-fast-non-reasoning</span>
+        </div>
+      </div>
+      <div class="fan-foot">
+        Five answers come back. Each one gets scored: were you named, how many times, in what tone,
+        ranked where against which competitors, and which sources did the model cite.
+      </div>
+    </div>
+
+    <div class="col">
+      <h3 style="margin-bottom:10px;">The one design decision worth stealing</h3>
+      <p>
+        Code decides whether you were mentioned. Not the AI.
+      </p>
+      <p>
+        It is tempting to hand the whole answer to a model and ask "was this brand mentioned, and
+        how did it do?" Do not. Judge models hallucinate your brand into answers that never named
+        it. They score look-alike names as you. They count the brand from the question as if it
+        appeared in the answer.
+      </p>
+      <p>
+        Every one of those failures makes your numbers <em>look better</em> than reality, which is
+        the worst possible direction for a bug in a measurement tool.
+      </p>
+      <div class="callout">
+        So: a literal word-boundary count in code decides whether you were mentioned. The model only
+        judges the fuzzy things it is genuinely good at - tone, ranking, and which other brands got
+        named. Use each for what it is actually good at.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">The three prompt types</span>
+      <div class="col">
+        <h2>What you ask decides what you learn</h2>
+        <p class="note" style="margin-top:14px;">
+          Every prompt falls into one of three buckets. They answer completely different questions
+          about your visibility, and you have to read them separately.
+        </p>
+      </div>
+    </div>
+
+    <div class="types">
+
+      <div class="type">
+        <span class="type-num">Type 01</span>
+        <h3>Brand</h3>
+        <div class="specimen">"What is Acme?"<br />"Is Acme any good for agencies?"<br />"Acme pricing and reviews"</div>
+        <p>
+          You by name. This tests whether the models know you exist at all, what they believe about
+          you, and crucially <strong>where they got that information from</strong> - the cited
+          sources tell you which pages are shaping your reputation.
+        </p>
+        <p>
+          It is also where you catch the models being confidently wrong about your pricing, your
+          features, or your positioning.
+        </p>
+        <div class="type-answers">
+          <b>Answers</b>
+          Do they know me, what do they say, and who told them?
+        </div>
+      </div>
+
+      <div class="type">
+        <span class="type-num">Type 02</span>
+        <h3>Category</h3>
+        <div class="specimen">"Best CRM for a small agency"<br />"How do I automate client reporting?"<br />"Top team wiki tools"</div>
+        <p>
+          Buying questions where <strong>nobody named you</strong>. This is intent-heavy territory:
+          someone with a problem and a budget, asking an AI what to do about it.
+        </p>
+        <p>
+          Showing up here means being recommended when the buyer has never heard of you. It is the
+          hardest of the three and the one that actually grows pipeline.
+        </p>
+        <div class="type-answers">
+          <b>Answers</b>
+          Am I recommended when nobody asked for me?
+        </div>
+      </div>
+
+      <div class="type">
+        <span class="type-num">Type 03</span>
+        <h3>Comparison</h3>
+        <div class="specimen">"Acme vs Globex"<br />"Globex alternatives"<br />"Which is better for enterprise?"</div>
+        <p>
+          You directly against a named competitor. The models will happily pick a winner, list your
+          weaknesses, and tell a buyer who to choose.
+        </p>
+        <p>
+          This is the most uncomfortable report to read and the most immediately useful. If a model
+          is telling your prospects a competitor handles your best use case better, you want to know
+          that today.
+        </p>
+        <div class="type-answers">
+          <b>Answers</b>
+          What gets said when I am put head to head?
+        </div>
+      </div>
+
+    </div>
+
+    <div class="col" style="margin-top:36px;">
+      <p>
+        <strong>Read the three scores separately, never as one average.</strong> The most common
+        result is a strong brand score with a weak category score. That combination means the models
+        know exactly who you are, and still never bring you up when it counts. It is also the most
+        expensive problem to leave unmeasured.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">The stack</span>
+      <div class="col">
+        <h2>Four pieces, one afternoon</h2>
+      </div>
+    </div>
+
+    <div class="stack-list">
+      <div class="stack-item">
+        <span class="eyebrow">Framework</span>
+        <h3>Next.js</h3>
+        <p>The app and its API in one codebase. The pages you see and the server code that calls the models live in the same project.</p>
+      </div>
+      <div class="stack-item">
+        <span class="eyebrow">Database</span>
+        <h3>Supabase</h3>
+        <p>Postgres with a free tier and a SQL editor in the browser. Two tables is all this needs. You paste one file in and you are done.</p>
+      </div>
+      <div class="stack-item">
+        <span class="eyebrow">Model access</span>
+        <h3>Vercel AI Gateway</h3>
+        <p>The piece that keeps this small. One API key reaches every model, so you skip five separate accounts with five separate cards. It also reports the real cost of every call.</p>
+      </div>
+      <div class="stack-item">
+        <span class="eyebrow">Hosting</span>
+        <h3>Vercel</h3>
+        <p>Connect the GitHub repo once. Every push deploys itself. You get a live URL in about two minutes.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">Setup</span>
+      <div class="col">
+        <h2>From nothing to deployed</h2>
+        <p class="note" style="margin-top:14px;">
+          Assumes you have never opened a terminal. Roughly 25 minutes of this is accounts and
+          installs you only ever do once.
+        </p>
+      </div>
+    </div>
+
+    <div class="steps">
+
+      <div class="step">
+        <span class="step-n">Step 01</span>
+        <div class="col">
+          <h3>Create four accounts</h3>
+          <p>Use the same email for all of them. Sign up to Vercel and Supabase <em>with</em> your GitHub account, it saves steps later.</p>
+          <ul>
+            <li><strong>GitHub</strong> stores your code</li>
+            <li><strong>Vercel</strong> hosts the app and gives you the AI Gateway key</li>
+            <li><strong>Supabase</strong> is your database</li>
+            <li><strong>Claude or ChatGPT</strong> if you want an AI agent building alongside you. Optional</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-n">Step 02</span>
+        <div class="col">
+          <h3>Install Git and Node</h3>
+          <p>Git tracks your code and pushes it to GitHub. Node runs the app on your machine. Download Node's <strong>LTS</strong> version, and click through both installers with the defaults.</p>
+          <p>Then open a terminal (PowerShell on Windows, Terminal on Mac) and check both landed:</p>
+          <pre><code>git --version
+node --version</code></pre>
+          <p class="note">Two version numbers back means you are good. "Command not found" usually means you need to close and reopen the terminal.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-n">Step 03</span>
+        <div class="col">
+          <h3>Install your AI agent</h3>
+          <p>You are building with an agent from here on, so install one now. Use whichever you already pay for - both do the same job.</p>
+          <pre><code>npm install -g @anthropic-ai/claude-code   # then run: claude
+npm install -g @openai/codex               # then run: codex</code></pre>
+          <p><strong>Four habits that matter more than any prompt:</strong></p>
+          <ul>
+            <li><strong>One thing at a time.</strong> "Build me an AI visibility platform" gets you slop. "Add a CSV export button" gets you a CSV export button</li>
+            <li><strong>Make it run before you make it pretty.</strong> Working and ugly beats beautiful and broken</li>
+            <li><strong>Read the diff.</strong> Agents are confidently wrong sometimes. If you do not understand a change, ask before accepting it</li>
+            <li><strong>Commit whenever something works.</strong> That is your undo button</li>
+          </ul>
+          <p>And whenever anything below goes wrong, this is the move:</p>
+          <pre><code>Here is the exact error: [paste it]. Explain what it means in
+plain English, then tell me the most likely cause before you
+change any code.</code></pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-n">Step 04</span>
+        <div class="col">
+          <h3>Fork the repo and pull it down</h3>
+          <p>Forking makes your own copy on GitHub. Hit <strong>Fork</strong> on the project page, then clone your copy and install what it needs:</p>
+          <pre><code>cd Desktop
+git clone https://github.com/YOUR-USERNAME/Free-llm-tracker.git
+cd Free-llm-tracker
+npm install</code></pre>
+          <p class="note"><code>cd</code> means change directory. You are now working inside the project folder. Swap in your own GitHub username on the clone line.</p>
+          <div class="callout">
+            Git giving you trouble? There is a <code>llm-tracker-starter.zip</code> with the identical project inside. Unzip it, <code>cd</code> into the folder, run <code>npm install</code>, and carry on from step 5. You can put it on GitHub later.
+          </div>
+          <p>Now start your agent in that folder and get the lay of the land before you change anything:</p>
+          <pre><code>Read README.md and lib/tracker/types.ts, then explain how this
+app works in plain English. I am a marketer, not a developer.
+Walk me through what happens between me typing a website and
+seeing a report.</code></pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-n">Step 05</span>
+        <div class="col">
+          <h3>Create the database</h3>
+          <p>In Supabase, create a new project and <strong>save the database password it generates</strong>. It takes about two minutes to build.</p>
+          <p>Then open <strong>SQL Editor</strong>, click New query, paste the entire contents of <code>supabase/schema.sql</code>, and hit Run. You want to see "Success. No rows returned."</p>
+          <div class="callout">
+            That file ends with a set of <code>GRANT</code> lines. They are not optional. Newer Supabase projects hand out no table permissions by default, and skipping them produces a "permission denied for table audits" error that looks exactly like a wrong key.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-n">Step 06</span>
+        <div class="col">
+          <h3>Collect three keys</h3>
+          <ul>
+            <li><strong>AI Gateway key</strong> from the Vercel dashboard, under AI Gateway then API Keys. You are shown it once</li>
+            <li><strong>Project URL</strong> from Supabase, under Project Settings then API Keys</li>
+            <li><strong>Secret key</strong> from the same page, the one starting <code>sb_secret_</code></li>
+          </ul>
+          <div class="callout">
+            Take the <strong>secret</strong> key, not the publishable one. The publishable key cannot write to your tables, and picking the wrong one is the single most common mistake here. Older Supabase projects call the secret key <code>service_role</code> instead.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-n">Step 07</span>
+        <div class="col">
+          <h3>Wire up your keys</h3>
+          <p>Copy <code>.env.example</code> to a new file called <code>.env.local</code> and fill in the three values. No quotes, no spaces around the equals sign.</p>
+          <pre><code>AI_GATEWAY_API_KEY=your-gateway-key
+NEXT_PUBLIC_SUPABASE_URL=https://abcdefgh.supabase.co
+SUPABASE_SECRET_KEY=sb_secret_your-key</code></pre>
+          <div class="callout">
+            <code>.env.local</code> is already git-ignored, so your keys never reach GitHub. Anything named <code>NEXT_PUBLIC_</code> ends up visible in the browser, which is exactly why the secret key does not carry that prefix.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-n">Step 08</span>
+        <div class="col">
+          <h3>Check your setup before spending anything</h3>
+          <pre><code>npm run smoke</code></pre>
+          <p>One cheap test call to the gateway, one query to the database. If a key is wrong it tells you which one. Two minutes here saves twenty minutes of confusion later.</p>
+          <p>Anything red, hand it straight to your agent:</p>
+          <pre><code>npm run smoke is failing. Here is the output: [paste it].
+Diagnose which key or step is wrong and tell me exactly
+what to change.</code></pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-n">Step 09</span>
+        <div class="col">
+          <h3>Run it</h3>
+          <pre><code>npm run dev</code></pre>
+          <p>Open <code>localhost:3000</code>, enter a website you know well, and watch the terminal while it runs. That is your app talking to five AI models.</p>
+          <p class="note">Set <code>TRACKER_PROMPT_COUNT=5</code> in <code>.env.local</code> for your first few runs, then raise it. Restart the dev server after any change to that file.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-n">Step 10</span>
+        <div class="col">
+          <h3>Put it on the internet</h3>
+          <pre><code>git add .
+git commit -m "My LLM tracker"
+git push</code></pre>
+          <p>Then import the repo at <strong>vercel.com/new</strong>.</p>
+          <div class="callout">
+            Before you click Deploy, open <strong>Environment Variables</strong> and add all three keys, set to <strong>Production</strong>. Your <code>.env.local</code> only exists on your laptop, so without this the site loads but every run fails.
+          </div>
+          <p>From then on, every <code>git push</code> deploys automatically. That is the whole workflow.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">Keep going</span>
+      <div class="col">
+        <h2>The agent is how you make it yours</h2>
+      </div>
+    </div>
+
+    <div class="col">
+      <p>
+        You have a working tracker. Now change it, while it is still small enough to hold in your
+        head. One thing at a time, and commit the moment each one works.
+      </p>
+      <pre><code>Walk me through lib/tracker/analyze.ts. I want to understand
+exactly how it decides whether my brand was mentioned, and why
+the code does the counting instead of the AI.</code></pre>
+      <pre><code>Add a "Download CSV" button to the report page that exports the
+per-prompt table: prompt text, type, mention rate, share of
+voice, and average position.</code></pre>
+      <pre><code>Add a history page at /history listing every audit ever run,
+newest first, each linking to its report.</code></pre>
+      <pre><code>After an audit finishes, read the answers where my brand was NOT
+mentioned, work out which sources those answers cited instead,
+and write three concrete recommendations.</code></pre>
+      <p class="note" style="margin-top:24px;">
+        <strong>AI-GUIDE.md</strong> in the repo has the full script: prompts for understanding every
+        file, extending it, adding Google AI Overviews via SerpAPI, and building the whole thing from
+        scratch in eleven steps.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">When it breaks</span>
+      <div class="col">
+        <h2>It will break. Here is the map.</h2>
+      </div>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>What you see</th>
+            <th>What it means</th>
+            <th>Fix</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>command not found: npm</td>
+            <td>Node did not install, or your terminal is stale</td>
+            <td>Reinstall Node, then close and reopen the terminal</td>
+          </tr>
+          <tr>
+            <td>permission denied for table audits</td>
+            <td>The grants never ran</td>
+            <td>Re-run the whole schema.sql in Supabase</td>
+          </tr>
+          <tr>
+            <td>relation "audits" does not exist</td>
+            <td>Tables were never created</td>
+            <td>Run schema.sql in the SQL editor</td>
+          </tr>
+          <tr>
+            <td>Gateway returned 404</td>
+            <td>That model id was retired. It happens without warning</td>
+            <td>Check the live model list and set the matching TRACKER_MODEL_ variable</td>
+          </tr>
+          <tr>
+            <td>Gateway returned 429</td>
+            <td>Rate limited from firing five models at once</td>
+            <td>Normal. It retries itself. If it persists, run fewer engines</td>
+          </tr>
+          <tr>
+            <td>Works locally, breaks live</td>
+            <td>Your keys only exist on your laptop</td>
+            <td>Add all three env vars in Vercel, then redeploy</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="col" style="margin-top:36px;">
+      <p>
+        <strong>The universal first move:</strong> read the actual error text, then paste it into
+        your agent and ask what it means. That is not cheating. That is the job now.
+      </p>
+    </div>
+  </section>
+
+  <section style="border-bottom:none;">
+    <div class="invert">
+      <span class="eyebrow">Where this goes next</span>
+      <h2 style="margin:14px 0 20px;">One run is a snapshot. The value is in the trend.</h2>
+      <div class="col">
+        <p>
+          Re-run the same prompt set every week and chart the movement. Feed the cited sources into
+          a content plan, because those pages are what shape the answers. Add a step that reads the
+          answers you lost and writes back what the winners had that you did not.
+        </p>
+        <p>
+          The tracker is not the point. Knowing what to fix is.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span class="eyebrow">Built live at The Workflow</span>
+    <span class="eyebrow">MIT licensed &middot; Take it and ship it</span>
+  </footer>
+
+</div>
+
+</body>
+</html>
