@@ -438,11 +438,13 @@ The tracker is not the point. Knowing what to fix is.
 
 ## Contributions
 
-This is a teaching repo, kept deliberately small and readable. **Fork it and make it yours** - that
-is what it is for. Issues and pull requests are not monitored.
+This is a teaching repo, kept deliberately small and readable. Issues and pull requests are turned
+off by design.
 
-If you build something good on top of it, post it in The Workflow community rather than opening a PR
-here.
+**Fork it and make it yours** - that is what it is for. Your fork is yours completely: change
+anything, break anything, ship it under your own name.
+
+If you build something good on top of it, share it in The Workflow community.
 
 ---
 
