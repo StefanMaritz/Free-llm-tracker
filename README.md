@@ -65,6 +65,7 @@ Prefer to do it by hand? The [full setup](#setup-from-nothing-to-deployed) is be
 - [Setup, from nothing to deployed](#setup-from-nothing-to-deployed) - including building it with Claude Code or Codex
 - [When it breaks](#when-it-breaks)
 - [The code, in reading order](#the-code-in-reading-order)
+- [Weekly runs and emailed reports](#weekly-runs-and-emailed-reports)
 - [Making it yours](#making-it-yours)
 
 ---
@@ -454,19 +455,76 @@ it means. That is not cheating. That is the job now.
 | [`lib/tracker/run-prompt.ts`](lib/tracker/run-prompt.ts) | One prompt, all engines, one report |
 | [`lib/tracker/aggregate.ts`](lib/tracker/aggregate.ts) | Every report rolled into one picture |
 | [`app/api/audits/[id]/run/route.ts`](app/api/audits/%5Bid%5D/run/route.ts) | The queue. Runs one prompt per request |
+| [`app/api/cron/weekly/route.ts`](app/api/cron/weekly/route.ts) | The weekly scheduled re-run |
+| [`lib/tracker/finalize.ts`](lib/tracker/finalize.ts) | Closing an audit, and the email that follows |
 | [`components/TrackerFlow.tsx`](components/TrackerFlow.tsx) | The three-step front end |
 | [`components/ReportView.tsx`](components/ReportView.tsx) | The report. No client JavaScript |
 
 ---
 
+## Weekly runs and emailed reports
+
+One run is a snapshot. The value is in the trend, so both of these ship built in and both are
+optional.
+
+On the review screen, before you run, you can enter an email address and tick **run this same
+prompt set every week**. Repeating the *exact same questions* is the point - change the questions
+and you are no longer measuring movement, you are measuring two different things.
+
+### Emailing the report
+
+1. Get a free API key at [resend.com](https://resend.com)
+2. Add `RESEND_API_KEY` to `.env.local` (and to Vercel for the live site)
+
+That is it. Finish a run with an email filled in and you get the headline numbers, mention rate by
+prompt type, who else the models named, and a link to the full report.
+
+> Resend's shared sender only delivers to the address that owns the Resend account. That is usually
+> fine, because you are mailing yourself. To send anywhere else, verify a domain in Resend and set
+> `EMAIL_FROM` to an address on it.
+
+**Without a Resend key, email is skipped silently and everything else works exactly the same.** No
+fourth account required.
+
+### The weekly schedule
+
+[`vercel.json`](vercel.json) already contains the schedule:
+
+```json
+{ "crons": [{ "path": "/api/cron/weekly", "schedule": "0 8 * * 1" }] }
+```
+
+That is Monday 08:00 UTC. Change the [cron expression](https://crontab.guru) to whatever suits.
+Vercel picks it up on your next deploy - nothing to configure in the dashboard.
+
+Add a `CRON_SECRET` env var in Vercel (any random string). Vercel sends it automatically when it
+triggers the job, and the route rejects anyone who cannot present it.
+
+Each week the job finds every recurring audit that has not run in six days, clones its prompt set
+into a fresh run, and works through it. Finished runs email out if an address was set.
+
+> **Cost is the thing to keep an eye on.** A weekly 15-prompt run is about 35 cents a week, so
+> roughly $18 a year per brand you track. Fewer prompts or fewer engines brings it down.
+
+To test it without waiting until Monday, just call it:
+
+```bash
+curl http://localhost:3000/api/cron/weekly
+```
+
+It reports what it scheduled and how much it got through.
+
+> Serverless functions time out, so the job works to a time budget and then calls itself to carry
+> on where it left off. That is what `depth` in the response means. On Vercel's Hobby plan crons
+> fire at most once a day, which a weekly schedule sits comfortably inside.
+
+---
+
 ## Making it yours
 
-One run is a snapshot. The value is in the trend.
-
-- Re-run the same prompt set weekly and chart the movement
 - Feed the cited sources into a content plan, because those pages are what shape the answers
 - Add a step that reads the answers you lost and writes back what the winners had that you did not
-- Email the report when it finishes
+- Chart mention rate over time by reading the linked weekly runs (`parent_audit_id`)
 - Track several brands in one account
 
 The tracker is not the point. Knowing what to fix is.

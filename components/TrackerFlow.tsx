@@ -46,6 +46,10 @@ export default function TrackerFlow() {
   const [profile, setProfile] = useState<AnalyzeResult | null>(null)
   const [prompts, setPrompts] = useState<GeneratedPrompt[]>([])
 
+  // step 2 - optional email + weekly repeat
+  const [notifyEmail, setNotifyEmail] = useState('')
+  const [recurring, setRecurring] = useState(false)
+
   // step 3
   const [auditId, setAuditId] = useState('')
   const [progress, setProgress] = useState({ done: 0, total: 0 })
@@ -124,6 +128,8 @@ export default function TrackerFlow() {
           website: profile?.website ?? website,
           competitors: profile?.competitors ?? [],
           prompts,
+          notifyEmail,
+          recurring,
         }),
       })
       const data = await res.json()
@@ -297,6 +303,37 @@ export default function TrackerFlow() {
               + {TYPE_LABEL[t]} prompt
             </button>
           ))}
+        </div>
+
+        <div className="mb-10 border border-line p-6">
+          <p className="label mb-4">Email and repeat (optional)</p>
+
+          <div className="mb-4 max-w-md">
+            <label className="mb-2 block text-sm">Email me the report when it is done</label>
+            <input
+              className="field"
+              type="email"
+              value={notifyEmail}
+              onChange={(e) => setNotifyEmail(e.target.value)}
+              placeholder="you@company.com"
+            />
+          </div>
+
+          <label className="flex cursor-pointer items-start gap-3 text-sm">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={recurring}
+              onChange={(e) => setRecurring(e.target.checked)}
+            />
+            <span>
+              Run this same prompt set every week
+              <span className="mt-1 block text-muted">
+                One run is a snapshot. Repeating the exact same questions is what turns it into a
+                trend you can act on. Costs the same as this run, once a week.
+              </span>
+            </span>
+          </label>
         </div>
 
         {error && <p className="mb-6 border border-ink px-4 py-3 text-sm">{error}</p>}

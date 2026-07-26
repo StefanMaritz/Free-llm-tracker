@@ -18,8 +18,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
 import { normalizeWebsite } from '@/lib/tracker/analyze'
 import { runPromptReport } from '@/lib/tracker/run-prompt'
-import { aggregateAudit } from '@/lib/tracker/aggregate'
-import type { AuditPromptResult, PromptType, Report } from '@/lib/tracker/types'
+import { finalizeAudit } from '@/lib/tracker/finalize'
 
 export const runtime = 'nodejs'
 // Vercel caps this by plan. 60s is safe everywhere including Hobby.
@@ -36,17 +35,7 @@ interface AuditRow {
   website: string | null
   competitors: string[] | null
   status: string
-}
-
-interface PromptRow {
-  id: string
-  idx: number
-  prompt: string
-  type: string
-  status: string
-  report: Report | null
-  error: string | null
-  cost_usd: number | null
+  notify_email: string | null
 }
 
 async function progressOf(admin: Admin, auditId: string) {
@@ -62,52 +51,6 @@ async function progressOf(admin: Admin, auditId: string) {
   return { total: total ?? 0, done: done ?? 0 }
 }
 
-/**
- * Everything is finished - build the rollup and mark the audit complete.
- * Guarded so that if two callers finish at the same moment, only one writes.
- */
-async function finalize(admin: Admin, audit: AuditRow): Promise<boolean> {
-  const { data: lock } = await admin
-    .from('audits')
-    .update({ status: 'finalizing' })
-    .eq('id', audit.id)
-    .in('status', ['running', 'review'])
-    .select('id')
-
-  if (!lock || lock.length === 0) return false // someone else is doing it
-
-  const { data } = await admin
-    .from('audit_prompts')
-    .select('id, idx, prompt, type, status, report, error, cost_usd')
-    .eq('audit_id', audit.id)
-    .order('idx', { ascending: true })
-
-  const results: AuditPromptResult[] = ((data ?? []) as PromptRow[]).map((r) => ({
-    id: r.id,
-    idx: r.idx,
-    text: r.prompt,
-    type: (r.type as PromptType) ?? 'category',
-    status: r.status === 'success' ? 'success' : 'error',
-    report: r.report,
-    error: r.error ?? undefined,
-    costUsd: r.cost_usd ?? 0,
-  }))
-
-  const aggregate = aggregateAudit(audit.brand, normalizeWebsite(audit.website), results)
-
-  await admin
-    .from('audits')
-    .update({
-      status: 'complete',
-      aggregate,
-      total_cost_usd: aggregate.totalCostUsd,
-      completed_at: new Date().toISOString(),
-    })
-    .eq('id', audit.id)
-
-  return true
-}
-
 export async function POST(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -119,7 +62,7 @@ export async function POST(
 
     const { data } = await admin
       .from('audits')
-      .select('id, brand, website, competitors, status')
+      .select('id, brand, website, competitors, status, notify_email')
       .eq('id', id)
       .maybeSingle()
 
@@ -182,7 +125,7 @@ export async function POST(
         return NextResponse.json({ finished: false, waiting: true, ...(await progressOf(admin, id)) })
       }
 
-      await finalize(admin, audit)
+      await finalizeAudit(admin, audit)
       return NextResponse.json({ finished: true, ...(await progressOf(admin, id)) })
     }
 
@@ -216,7 +159,7 @@ export async function POST(
       .in('status', ['pending', 'running'])
 
     if ((remaining ?? 0) === 0) {
-      await finalize(admin, audit)
+      await finalizeAudit(admin, audit)
       return NextResponse.json({ finished: true, ...(await progressOf(admin, id)) })
     }
 

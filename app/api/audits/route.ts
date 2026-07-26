@@ -20,6 +20,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       website?: string
       competitors?: string[]
       prompts?: Array<{ text?: string; type?: string }>
+      notifyEmail?: string
+      recurring?: boolean
     }
 
     const brand = body.brand?.trim()
@@ -47,6 +49,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         competitors: (body.competitors ?? []).map((c) => c.trim()).filter(Boolean).slice(0, 12),
         status: 'review',
         total_prompts: prompts.length,
+        notify_email: body.notifyEmail?.trim() || null,
+        // Marking it recurring makes the weekly cron re-run this exact prompt
+        // set. last_run_at starts now so the first repeat is a week away, not
+        // on the next cron tick.
+        recurring: Boolean(body.recurring),
+        last_run_at: body.recurring ? new Date().toISOString() : null,
       })
       .select('id')
       .single()
