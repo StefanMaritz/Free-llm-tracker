@@ -3,6 +3,128 @@
 This file is read automatically by Claude Code. `AGENTS.md` points here for Codex and other
 agents. Keep them in sync.
 
+---
+
+# THE SETUP RUNBOOK
+
+**If the user asks you to set this up, get it running, or says anything like "set this up for
+me" - follow this runbook exactly, top to bottom. Do not improvise the order.**
+
+Assume the user is a marketer who has never opened a terminal. They have already created a Vercel
+account and a Supabase account. Everything else is your job.
+
+Work one step at a time. After each step, say what you did in one plain sentence and what is
+happening next. Never dump a wall of instructions on them.
+
+### Step 1 - check the machine
+
+Run `node --version`. Node 20 or newer is required.
+
+If Node is missing or too old, stop and tell them to install the LTS build from nodejs.org, then
+close and reopen the terminal. Do not continue until `node --version` prints a number.
+
+### Step 2 - install dependencies
+
+Run `npm install` from the project root. It takes about 30 seconds. Warnings are normal, red
+errors are not.
+
+### Step 3 - ask for their three values
+
+Ask for all three in ONE message, formatted exactly like this, and wait for their reply:
+
+> I need three things from you. All three are free to get.
+>
+> **1. Vercel AI Gateway key.** Go to vercel.com/dashboard, click **AI Gateway** in the top nav,
+> then **API Keys**, then **Create key**. Copy it - it is only shown once.
+>
+> **2. Supabase Project URL.** Open your project at supabase.com/dashboard, then
+> **Project Settings -> API Keys**. It looks like `https://abcdefgh.supabase.co`.
+>
+> **3. Supabase secret key.** Same page. Take the one labelled **secret**, starting `sb_secret_`.
+> Do NOT give me the publishable key - it cannot write to the database and everything will fail
+> later in a confusing way. On older projects this key is called `service_role` instead.
+>
+> Paste all three and I will wire them up.
+
+Sanity-check what they paste before writing it:
+
+- the URL must look like `https://<something>.supabase.co`
+- the secret key must start with `sb_secret_` or be a long JWT starting `eyJ`
+- **if they paste something starting `sb_publishable_`, stop and ask again for the secret key.**
+  This is the single most common mistake and it produces a misleading error much later
+
+### Step 4 - write .env.local
+
+Create `.env.local` in the project root with exactly these three lines and their values:
+
+```
+AI_GATEWAY_API_KEY=...
+NEXT_PUBLIC_SUPABASE_URL=...
+SUPABASE_SECRET_KEY=...
+```
+
+Then tell them: this file stays on their machine, is already git-ignored, and must never be
+pasted anywhere public.
+
+Also add `TRACKER_PROMPT_COUNT=5` for now, so their first run costs about 12 cents instead of 35.
+Tell them you did this and that they can raise it later.
+
+### Step 5 - create the database tables
+
+You cannot do this one for them - it needs a browser. Give them exactly this:
+
+> Open your Supabase project, click **SQL Editor** in the left sidebar, then **New query**.
+> Copy everything out of `supabase/schema.sql` in this project, paste it in, and click **Run**.
+> You should see "Success. No rows returned." Tell me when that is done.
+
+If they report an error, read `supabase/schema.sql` and diagnose it. Do not guess.
+
+### Step 6 - verify before spending anything
+
+Run `npm run smoke`.
+
+This checks both keys and the database. Read the output and act on it:
+
+| Output | Cause | What to do |
+|---|---|---|
+| `AI Gateway returned 401` | bad or mistyped gateway key | ask them to re-copy it |
+| `AI Gateway returned 404` | a model id was retired | check https://ai-gateway.vercel.sh/v1/models and set the matching `TRACKER_MODEL_*` in `.env.local` |
+| `credit` / `quota` in a 402 or 429 | no credit on their gateway account | tell them to add credit; nothing else will work until they do |
+| `audits table does not exist` | step 5 not done or failed | send them back to step 5 |
+| `permission denied` / `42501` | the GRANT lines did not run | have them re-run the WHOLE schema.sql, not just part |
+| `Supabase rejected your key` | they used the publishable key | ask for the secret key again |
+
+**Do not move on until every line says PASS.** This is the whole point of the step.
+
+### Step 7 - run it
+
+Run `npm run dev` in the background and tell them to open http://localhost:3000.
+
+Walk them through their first run: enter a website they know well, review the generated prompts,
+click Run. Tell them it takes a few minutes and costs a few cents, and that the report link keeps
+working afterwards.
+
+### Step 8 - offer what is next
+
+Once they have seen a report, offer, and let them pick ONE:
+
+- deploy it live on Vercel so it has a real URL
+- add a CSV export to the report
+- add a history page listing every past run
+- change what the prompts ask about
+
+Then stop and wait. Do not start building things they did not ask for.
+
+## Runbook rules
+
+- **Never invent a key or a URL.** If you do not have a value, ask for it
+- **Never put a real key in any file except `.env.local`**, and never echo a full key back into
+  the chat
+- **Never run a full audit to test a change.** That costs real money. Use `npm run smoke`
+- If a step fails twice, stop and explain plainly what is wrong rather than trying a third fix
+
+---
+
 ## What this project is
 
 An LLM brand visibility tracker. It sends prompts to five AI models, reads the answers, and

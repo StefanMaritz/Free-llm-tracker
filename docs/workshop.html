@@ -471,6 +471,49 @@
 
   <section>
     <div class="sec-head">
+      <span class="eyebrow">Quickest start</span>
+      <div class="col">
+        <h2>Let Claude set it up for you</h2>
+      </div>
+    </div>
+
+    <div class="col">
+      <p>
+        Two free accounts first - <strong>Vercel</strong> and <strong>Supabase</strong> - plus
+        <strong>Node.js</strong> installed. Then get the code, open Claude Code or Codex in the
+        folder, and paste this:
+      </p>
+      <pre><code>Set this project up for me. Follow the setup runbook in
+CLAUDE.md exactly.
+
+I am not a developer, so explain each step in plain English, do
+the work yourself where you can, and tell me exactly what to
+click where you cannot. I already have a Vercel account and a
+Supabase account.</code></pre>
+      <p>
+        The repo ships a runbook the agent follows: install dependencies, collect your keys, write
+        your config, set up the database, verify everything works before you spend a cent, start the
+        app. It asks you for three values and handles the rest.
+      </p>
+      <div class="callout">
+        <strong>It runs entirely on your own accounts.</strong> There are no keys in the repo and no
+        shared backend. The code reads your keys from a local file and refuses to start without
+        them. Nobody else sees your data and nobody else pays for your runs.
+      </div>
+      <div class="callout">
+        <strong>No paywall, no licence, no signup.</strong> You pay your AI provider directly for
+        the calls you make - about 2.5 cents a prompt across all five models. The runbook starts you
+        at five prompts, so the first report costs around 12 cents.
+      </div>
+      <p class="note">
+        The step-by-step below is the same path by hand, for anyone who would rather drive it
+        themselves or wants to understand every piece.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
       <span class="eyebrow">What you leave with</span>
       <div class="col">
         <h2>A working tracker, not a demo</h2>

@@ -14,7 +14,44 @@ demo. You can ship it and use it on Monday.
 | **5** | AI models queried |
 | **3** | Prompt types |
 | **$0.025** | Cost per prompt, all five engines |
-| **~40 min** | Zero to deployed |
+| **~20 min** | Zero to your first report |
+
+---
+
+## Quickest start: let Claude set it up for you
+
+You need two free accounts first - **[Vercel](https://vercel.com/signup)** and
+**[Supabase](https://supabase.com/dashboard/sign-up)** - plus **[Node.js](https://nodejs.org)**
+installed (take the LTS button).
+
+Then get the code, open [Claude Code](https://claude.com/claude-code) or Codex in the folder, and
+paste this:
+
+```
+Set this project up for me. Follow the setup runbook in CLAUDE.md exactly.
+
+I am not a developer, so explain each step in plain English, do the work
+yourself where you can, and tell me exactly what to click where you cannot.
+I already have a Vercel account and a Supabase account.
+```
+
+That is it. The repo ships a runbook in [CLAUDE.md](CLAUDE.md) that walks the agent through
+installing dependencies, collecting your keys, writing your config, setting up the database,
+verifying everything works before you spend a cent, and starting the app.
+
+It will ask you for three things - a Vercel AI Gateway key and two values from Supabase - and
+handle the rest.
+
+> **Everything runs on your own accounts.** There are no keys in this repo and no shared backend.
+> The code reads your keys from a local file and throws an error if they are missing. Nobody else
+> can see your data, and nobody else pays for your runs.
+
+> **What it costs.** There is no paywall, no licence, no signup. You pay your AI provider directly
+> for the calls you make - about 2.5 cents per prompt across all five models. The runbook starts
+> you at 5 prompts, so your first report costs around 12 cents. Set `TRACKER_ENGINES=chatgpt,claude`
+> to halve it while you experiment.
+
+Prefer to do it by hand? The [full setup](#setup-from-nothing-to-deployed) is below.
 
 ---
 

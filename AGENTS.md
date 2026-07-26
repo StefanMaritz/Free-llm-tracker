@@ -3,7 +3,12 @@
 See **[CLAUDE.md](CLAUDE.md)** for the full context. It applies to every coding agent working in
 this repo, Codex included.
 
-Quick version:
+**If the user asks you to set this project up, open CLAUDE.md and follow "THE SETUP RUNBOOK" at
+the top of it, exactly and in order.** It covers checking Node, installing dependencies,
+collecting their three keys, writing `.env.local`, creating the database tables, verifying with
+`npm run smoke`, and starting the app. Assume the user has never opened a terminal.
+
+Quick version of everything else:
 
 - The audience is marketers, not developers. Explain in plain English first
 - `countBrandMentions` in `lib/tracker/analyze.ts` decides whether a brand was mentioned. The
